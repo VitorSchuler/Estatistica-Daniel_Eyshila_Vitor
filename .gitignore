@@ -1,0 +1,25 @@
+# Histórico e ambiente do R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# Arquivos e diretórios temporários do Quarto
+/.quarto/
+*_files/
+*_cache/
+*.html
+
+# Arquivos temporários do LaTeX (se gerados na compilação do PDF)
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Arquivos de sistema (Windows/Mac)
+.DS_Store
+Thumbs.db

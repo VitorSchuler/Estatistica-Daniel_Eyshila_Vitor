@@ -1,0 +1,12 @@
+Variavel;Tipo;Descricao
+id;ID;Identificador do aluno
+nota_media;Numérica (dep.);Nota média final (0–10)
+horas_estudo;Numérica;Horas de estudo por semana
+frequencia;Numérica;Frequência escolar (%)
+renda_familiar;Numérica;Renda familiar (R$ mil)
+indice_socioeconomico;Numérica;Índice socioeconômico (0–100)
+escolaridade_pais;Numérica;Anos de escolaridade dos pais
+distancia_escola;Numérica;Distância até a escola (km)
+tipo_escola;Categórica;Tipo de escola (Pública/Privada)
+acesso_internet;Categórica;Acesso à internet em casa (Sim/Não)
+participa_reforco;Categórica;Participa de reforço (Sim/Não)
