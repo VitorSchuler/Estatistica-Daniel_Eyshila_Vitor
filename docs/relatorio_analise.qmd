@@ -1,40 +1,73 @@
 ---
 title: "Relatório de Análise de Regressão Linear Múltipla - 3º Estágio"
 subtitle: "Disciplina: Estatística Aplicada"
-author: 
-  - "Eyshila Buriti de Araujo Azevedo - 123110472"
-  - "Daniel Cordeiro Mantovani Soares - 121210386"
-  - "Vitor Schuler Velloso Borges - 123110668"
-date: today
-format: pdf
-toc: true
-lang: pt-BR
+author:
+
+    - "Eyshila Buriti de Araujo Azevedo - 123110472"
+
+    - "Daniel Cordeiro Mantovani Soares - 121210386"
+
+    - "Vitor Schuler Velloso Borges - 123110668"
+    date:today
+    format:pdf
+    toc:true
+    lang:pt-BR
 ---
 
 # 1. Introdução
+
 O presente relatório tem como objetivo analisar os fatores que influenciam o desempenho acadêmico de alunos, utilizando a nota média final como variável resposta (dependente). O problema central consiste em entender como características socioeconômicas (como renda familiar e escolaridade dos pais), hábitos de estudo e infraestrutura escolar afetam as notas. Através da Análise de Regressão Linear Múltipla, buscaremos identificar quais dessas variáveis explicativas são mais significativas para prever o sucesso ou o risco de baixo desempenho escolar.
 
 # 2. Descrição da Base de Dados
-A base de dados é composta por indicadores educacionais e socioeconômicos. A variável resposta a ser modelada é a `nota_media`. As demais variáveis atuarão como potenciais previsoras:
 
-* **id:** Identificador do aluno
-* **nota_media:** Nota média final (0 a 10) - *Variável Resposta*
-* **horas_estudo:** Horas de estudo por semana (Numérica)
-* **frequencia:** Frequência escolar em percentual (Numérica)
-* **renda_familiar:** Renda familiar em milhares de reais (Numérica)
-* **indice_socioeconomico:** Índice socioeconômico de 0 a 100 (Numérica)
-* **escolaridade_pais:** Anos de escolaridade dos pais (Numérica)
-* **distancia_escola:** Distância até a escola em km (Numérica)
-* **tipo_escola:** Tipo de escola, Pública ou Privada (Categórica)
-* **acesso_internet:** Acesso à internet em casa, Sim ou Não (Categórica)
-* **participa_reforco:** Participa de reforço escolar, Sim ou Não (Categórica)
+A base de dados é composta por indicadores educacionais e socioeconômicos. A variável resposta a ser modelada é a nota_media. As demais variáveis atuarão como potenciais previsoras:
+
+    id: Identificador do aluno
+
+    nota_media: Nota média final (0 a 10) - Variável Resposta
+
+    horas_estudo: Horas de estudo por semana (Numérica)
+
+    frequencia: Frequência escolar em percentual (Numérica)
+
+    renda_familiar: Renda familiar em milhares de reais (Numérica)
+
+    indice_socioeconomico: Índice socioeconômico de 0 a 100 (Numérica)
+
+    escolaridade_pais: Anos de escolaridade dos pais (Numérica)
+
+    distancia_escola: Distância até a escola em km (Numérica)
+
+    tipo_escola: Tipo de escola, Pública ou Privada (Categórica)
+
+    acesso_internet: Acesso à internet em casa, Sim ou Não (Categórica)
+
+    participa_reforco: Participa de reforço escolar, Sim ou Não (Categórica)
 
 ```{r setup, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(skimr)
+```
 
-# Importando os dados
-dados <- read_csv2("../dados/dados_brutos.csv")
-dicionario <- read_csv2("../dados/dicionario.csv")
+```{r carga-dados, message=FALSE}
 
+dados <- read_csv2("dados/dados_brutos.csv")
+dicionario <- read_csv2("dados/dicionario.csv")
+```
+# 3. Análise Exploratória de Dados (EDA)
+
+Abaixo, apresentamos um resumo estatístico da base para identificar a quantidade de observações, possíveis valores ausentes (NAs) e a distribuição geral dos dados.
+
+```{r exploratoria}
 skim(dados)
+```
+
+Como podemos observar no resumo estatístico, as variáveis categóricas estão completas. No entanto, identificamos valores ausentes (NAs) nas variáveis numéricas horas_estudo (6), frequencia (3) e renda_familiar (3).
+
+Como o número de dados faltantes é muito pequeno em relação ao tamanho total da amostra (250 observações), a estratégia adotada foi a remoção dessas linhas incompletas, gerando uma base de dados limpa para não comprometer o modelo de Regressão Linear.
+Snippet de código
+
+# Removendo as linhas com valores ausentes
+```{r limpeza}
+dados_limpos <- dados |> drop_na()
+```
