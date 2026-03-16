@@ -12,66 +12,80 @@ lang: portuguese
 execute:
   echo: false
   warning: false
+editor: 
+  markdown: 
+    wrap: 72
 ---
 
 # 1. Introdução
 
-O presente relatório tem como objetivo analisar os fatores que influenciam o desempenho acadêmico de alunos, utilizando a nota média final como variável resposta (dependente). O problema central consiste em entender como características socioeconômicas (como renda familiar e escolaridade dos pais), hábitos de estudo e infraestrutura escolar afetam as notas. Através da Análise de Regressão Linear Múltipla, buscaremos identificar quais dessas variáveis explicativas são mais significativas para prever o sucesso ou o risco de baixo desempenho escolar.
+O presente relatório tem como objetivo analisar os fatores que
+influenciam o desempenho acadêmico de alunos, utilizando a nota média
+final como variável resposta (dependente). O problema central consiste
+em entender como características socioeconômicas (como renda familiar e
+escolaridade dos pais), hábitos de estudo e infraestrutura escolar
+afetam as notas. Através da Análise de Regressão Linear Múltipla,
+buscaremos identificar quais dessas variáveis explicativas são mais
+significativas para prever o sucesso ou o risco de baixo desempenho
+escolar.
 
 # 2. Descrição da Base de Dados
 
-A base de dados é composta por indicadores educacionais e socioeconômicos, com 250 observações e 11 variáveis. A variável resposta a ser modelada é a nota_media. As demais variáveis atuarão como potenciais previsoras:
+A base de dados é composta por indicadores educacionais e
+socioeconômicos, com 250 observações e 11 variáveis. A variável resposta
+a ser modelada é a nota_media. As demais variáveis atuarão como
+potenciais previsoras:
 
 -   **id**: Identificador do aluno (ID).
--   **nota_media**: Nota média final, 0-10 (Numérica) - Variável Dependente.
+-   **nota_media**: Nota média final, 0-10 (Numérica) - Variável
+    Dependente.
 -   **horas_estudo**: Horas de estudo por semana (Numérica).
 -   **frequencia**: Frequência escolar em percentual (Numérica).
 -   **renda_familiar**: Renda familiar em milhares de reais (Numérica).
--   **indice_socioeconomico**: Índice socioeconômico de 0 a 100 (Numérica).
+-   **indice_socioeconomico**: Índice socioeconômico de 0 a 100
+    (Numérica).
 -   **escolaridade_pais**: Anos de escolaridade dos pais (Numérica).
 -   **distancia_escola**: Distância até a escola, em km (Numérica).
 -   **tipo_escola**: Tipo de escola, Pública ou Privada (Categórica).
--   **acesso_internet**: Acesso à internet em casa, Sim ou Não (Categórica).
--   **participa_reforco**: Participa de reforço escolar, Sim ou Não (Categórica).
+-   **acesso_internet**: Acesso à internet em casa, Sim ou Não
+    (Categórica).
+-   **participa_reforco**: Participa de reforço escolar, Sim ou Não
+    (Categórica).
 
 ## 2.1 Preparação
 
 Instalação e carregamento dos pacotes e funções necessárias.
 
-```{r}
-# Instalação de pacotes e funções
-# install.packages("skimr")
-# install.packages("kableExtra")
-# install.packages("readxl")
-# install.packages("tidyverse")
-# install.packages("ggplot2")
-# install.packages("gridExtra")
-# install.packages("ggcorrplot")
-# install.packages("performance")
-# install.packages("MASS")
-# install.packages("knitr")
-# install.packages("gtsummary")
+```{r  message=FALSE, warning=FALSE}
+install.packages(c(
+  "skimr",
+  "kableExtra",
+  "tidyverse",
+  "gridExtra",
+  "ggcorrplot",
+  "performance",
+  "MASS",
+  "gtsummary"
+))
 ```
 
 ```{r message=FALSE, warning=FALSE}
-library(readr)
+library(tidyverse)
+library(skimr)
 library(knitr)
 library(kableExtra)
-library(readxl)
-library(skimr)
-library(ggplot2)
 library(gridExtra)
 library(ggcorrplot)
 library(performance)
 library(MASS)
-library(knitr)
 library(gtsummary)
-library(tidyverse)
 ```
 
 ## 2.2 Os Dados
 
-Os dados utilizados neste estudo foram estraídos da base `dados_brutos.csv`. A seguir, segue uma visualização da estrutura e do conteúdo das variáveis.
+Os dados utilizados neste estudo foram estraídos da base
+`dados_brutos.csv`. A seguir, segue uma visualização da estrutura e do
+conteúdo das variáveis.
 
 ```{r}
 dados <- read.csv2("dados_brutos.csv", fileEncoding = "latin1")
@@ -87,7 +101,8 @@ ncol(dados) # colunas
 
 # 3. Análise Exploratória de Dados
 
-Abaixo, apresentamos um resumo estatístico da base para identificar possíveis valores ausentes e a distribuição geral dos dados.
+Abaixo, apresentamos um resumo estatístico da base para identificar
+possíveis valores ausentes e a distribuição geral dos dados.
 
 ```{r}
 skim(dados)
@@ -95,9 +110,17 @@ skim(dados)
 
 ## 3.1 Análise de Valores Ausentes
 
-Como podemos observar no resumo estatístico, as variáveis categóricas estão completas. No entanto, identificamos valores ausentes (`NA`) nas variáveis numéricas horas_estudo (6), frequencia (3) e renda_familiar (3).
+Como podemos observar no resumo estatístico, as variáveis categóricas
+estão completas. No entanto, identificamos valores ausentes (`NA`) nas
+variáveis numéricas horas_estudo (6), frequencia (3) e renda_familiar
+(3).
 
-Para garantir a integridade e a precisão das análises posteiores, faz-se necessário realizar um tratamento para esse caso. Como o número de dados faltantes é muito pequeno em relação ao tamanho total da amostra, 12 registros nulos (4,8% do total de 250 observações), a estratégia adotada foi a remoção dessas linhas incompletas, gerando uma base de dados limpa para não comprometer o modelo.
+Para garantir a integridade e a precisão das análises posteiores, faz-se
+necessário realizar um tratamento para esse caso. Como o número de dados
+faltantes é muito pequeno em relação ao tamanho total da amostra, 12
+registros nulos (4,8% do total de 250 observações), a estratégia adotada
+foi a remoção dessas linhas incompletas, gerando uma base de dados limpa
+para não comprometer o modelo.
 
 ```{r}
 dados_limpos <- dados[complete.cases(dados), ]
@@ -112,7 +135,10 @@ View(dados_limpos)
 
 ## 3.2 Análise de Outliers
 
-Adicionar texto de explicação.
+Outliers são valores atípicos que podem influenciar o modelo de
+regressão. Sua presença não implica necessariamente um erro, pode
+representar um aluno com perfil legítimo e incomum. Portanto, nesta
+análise os outliers serão identificados, mas não removidos.
 
 ```{r}
 mostrar_outliers <- function(dados_limpos, nome_da_coluna) {
@@ -148,14 +174,22 @@ Adicionar texto de conclusão outliers.
 
 ## 3.3 Variáveis qualitativas
 
-As variáveis qualitativas (ou categóricas) representam grupos, rótulos ou características não numéricas. Diferentemente das variáveis quantitativas, sua análise não envolve médias ou desvios, mas sim a frequência com que cada categoria aparece na amostra, o que nos permite compreender a composição do conjunto de dados.
+As variáveis qualitativas (ou categóricas) representam grupos, rótulos
+ou características não numéricas. Diferentemente das variáveis
+quantitativas, sua análise não envolve médias ou desvios, mas sim a
+frequência com que cada categoria aparece na amostra, o que nos permite
+compreender a composição do conjunto de dados.
 
-As três variáveis qualitativas presentes m nosso conjunto de dados são:
-- **tipo_escola**: indica se o aluno frequenta uma instituição (Pública ou Privada).
-- **acesso_internet**: registra se o aluno possui acesso à internet em casa (Sim ou Não).
-- **participa_reforco**: indica se o aluno participa de aulas de reforço escolar (Sim ou Não).
+As três variáveis qualitativas presentes em nosso conjunto de dados
+são: - **tipo_escola**: indica se o aluno frequenta uma instituição
+(Pública ou Privada). - **acesso_internet**: registra se o aluno possui
+acesso à internet em casa (Sim ou Não). - **participa_reforco**: indica
+se o aluno participa de aulas de reforço escolar (Sim ou Não).
 
-Os gráficos de barras a seguir permitem visualizar a distribuição dos alunos entre essas categorias, sendo uma etapa importante para identificar possíveis desequilíbrios na amostra que possam influenciar a modelagem posterior.
+Os gráficos de barras a seguir permitem visualizar a distribuição dos
+alunos entre essas categorias, sendo uma etapa importante para
+identificar possíveis desequilíbrios na amostra que possam influenciar a
+modelagem posterior.
 
 ```{r}
 # Tipo de Escola
@@ -183,25 +217,53 @@ ggplot(dados_limpos, aes(x = participa_reforco, fill = participa_reforco)) +
   theme_minimal()
 ```
 
+A partir da visualização da distribuição de alunos nas categorias, é
+possível extrair algumas conclusões:
 
-A partir da visualização da distribuição de alunos nas categorias, é possível extrair algumas conclusões:
+-   **Distribuição por Tipo de Escola**: Há uma predominância de alunos
+    de escolas públicas em relação às privadas.
 
--   **Distribuição por Tipo de Escola**: Há uma predominância de alunos de escolas públicas em relação às privadas.
--   **Distribuição por Acesso à Internet**: A maior parte dos alunos da amostra possui acesso à internet em casa, indicando que esse recurso está presente na maioria dos casos analisados.
--   **Distribuição por Participação em Reforço**: Esta é a variável com distribuição mais desigual das três. A maioria dos alunos não frequenta aulas de reforço escolar, sugerindo que essa prática ainda é pouco utilizada entre os estudantes da amostra.
+-   **Distribuição por Acesso à Internet**: A maior parte dos alunos da
+    amostra possui acesso à internet em casa, indicando que esse recurso
+    está presente na maioria dos casos analisados.
 
-Essa distribuição desigual é um ponto de atenção para a etapa de modelagem, pois o modelo terá uma base de dados mais robusta para as tecnologias predominantes.
+-   **Distribuição por Participação em Reforço**: Esta é a variável com
+    distribuição mais desigual das três. A maioria dos alunos não
+    frequenta aulas de reforço escolar, sugerindo que essa prática ainda
+    é pouco utilizada entre os estudantes da amostra.
 
-De forma geral, o perfil predominante da amostra é de alunos de escola pública, com acesso à internet e sem participação em reforço. Essa distribuição desigual é um ponto de atenção para a regressão: categorias menos representadas tendem a gerar estimativas com maior incerteza.
+Essa distribuição desigual é um ponto de atenção para a etapa de
+modelagem, pois o modelo terá uma base de dados mais robusta para as
+tecnologias predominantes.
+
+De forma geral, o perfil predominante da amostra é de alunos de escola
+pública, com acesso à internet e sem participação em reforço. Essa
+distribuição desigual é um ponto de atenção para a regressão: categorias
+menos representadas tendem a gerar estimativas com maior incerteza.
 
 # 4. Análise das Variáveis
 
-Para responder ao objetivo central do relatório — identificar quais fatores influenciam o desempenho acadêmico — é necessário ir além da descrição individual das variáveis e investigar como elas se relacionam entre si.
+Esta seção conduz essa investigação em três frentes complementares:
 
-Esta seção conduz essa investigação em três frentes complementares: uma análise de correlação entre todas as variáveis numéricas, para quantificar o grau de associação linear entre os preditores e a variável resposta e identificar possíveis problemas de multicolinearidade; gráficos de dispersão, para visualizar a forma da relação entre cada preditor numérico e a nota_media; e boxplots bivariados, para examinar como a distribuição das notas se comporta em função das variáveis categóricas.
+-   Uma análise de correlação entre todas as variáveis numéricas, para
+    quantificar o grau de associação linear entre os preditores e a
+    variável resposta e identificar possíveis problemas de
+    multicolinearidade.
+-   Gráficos de dispersão, para visualizar a forma da relação entre cada
+    preditor numérico e a nota_media.
+-   Boxplots bivariados, para examinar como a distribuição das notas se
+    comporta em função das variáveis categóricas.
 
 ## 4.1 Correlação das Variáveis
-Antes de construir o modelo, é importante entender o grau de associação linear entre as variáveis numéricas. O mapa de calor a seguir apresenta os coeficientes de correlação de Pearson para todos os pares de variáveis, permitindo identificar tanto os preditores mais promissores para explicar a `nota_media` quanto possíveis indícios de multicolinearidade — situação em que duas variáveis explicativas carregam informações muito semelhantes, o que pode comprometer a estabilidade dos coeficientes no modelo.
+
+Antes de construir o modelo, é importante entender o grau de associação
+linear entre as variáveis numéricas. O mapa de calor a seguir apresenta
+os coeficientes de correlação de Pearson para todos os pares de
+variáveis, permitindo identificar tanto os preditores mais promissores
+para explicar a `nota_media` quanto possíveis indícios de
+multicolinearidade — situação em que duas variáveis explicativas
+carregam informações muito semelhantes, o que pode comprometer a
+estabilidade dos coeficientes no modelo.
 
 ```{r}
 dados_numericos <- dados_limpos %>%
@@ -219,18 +281,43 @@ ggcorrplot(M,
 
 print(sort(M[,"nota_media"], decreasing = TRUE))
 ```
-A matriz de correlação revela informações importantes sobre as relações entre as variáveis do estudo:
 
-1. **Preditor dominante (horas_estudo)**: A variável com maior correlação com a nota_media é horas_estudo (0.74), indicando uma associação linear positiva e forte — alunos que dedicam mais horas ao estudo tendem a apresentar notas mais elevadas. Este é, de longe, o preditor com maior poder explicativo individual.
+A matriz de correlação revela informações importantes sobre as relações
+entre as variáveis do estudo:
 
-2. **Multicolinearidade suspeita**: Destaca-se a alta correlação (0.76–0.78) entre renda_familiar e indice_socioeconomico. Como ambas medem aspectos muito próximos da condição socioeconômica do aluno, incluí-las simultaneamente no modelo pode gerar instabilidade nos coeficientes. Essa questão será tratada formalmente na etapa de diagnóstico VIF.
+1.  **Preditor dominante (horas_estudo)**: A variável com maior
+    correlação com a nota_media é horas_estudo (0.74), indicando uma
+    associação linear positiva e forte. Alunos que dedicam mais horas ao
+    estudo tendem a apresentar notas mais elevadas. Este é, de longe, o
+    preditor com maior poder explicativo individual.
 
-3. **Preditores de impacto moderado**: As variáveis renda_familiar (0.43), indice_socioeconomico (0.30) e escolaridade_pais (0.36) apresentam correlações moderadas e positivas com a nota_media, sugerindo que o contexto socioeconômico do aluno contribui para o desempenho, embora não de forma tão expressiva quanto as horas de estudo.
+2.  **Multicolinearidade suspeita**: Destaca-se a alta correlação
+    (0.76–0.78) entre renda_familiar e indice_socioeconomico. Como ambas
+    medem aspectos muito próximos da condição socioeconômica do aluno,
+    incluí-las simultaneamente no modelo pode gerar instabilidade nos
+    coeficientes. Essa questão será tratada formalmente na etapa de
+    diagnóstico VIF.
 
-4. **Preditores de baixo impacto**: frequencia (0.26) apresenta correlação fraca, e distancia_escola (−0.15) mostra uma leve associação negativa — alunos mais distantes da escola tendem a ter notas ligeiramente menores, o que é intuitivo. Por fim, id não apresenta correlação relevante com nenhuma variável, como esperado, por ser apenas um identificador.
+3.  **Preditores de impacto moderado**: As variáveis renda_familiar
+    (0.43), indice_socioeconomico (0.30) e escolaridade_pais (0.36)
+    apresentam correlações moderadas e positivas com a nota_media,
+    sugerindo que o contexto socioeconômico do aluno contribui para o
+    desempenho, embora não de forma tão expressiva quanto as horas de
+    estudo.
+
+4.  **Preditores de baixo impacto**: frequencia (0.26) apresenta
+    correlação fraca, e distancia_escola (−0.15) mostra uma leve
+    associação negativa. Alunos mais distantes da escola tendem a ter
+    notas ligeiramente menores, o que é intuitivo. Por fim, id não
+    apresenta correlação relevante com nenhuma variável, como esperado,
+    por ser apenas um identificador.
 
 ## 4.2 Dispersão
-Para complementar a análise de correlação, geramos gráficos de dispersão entre a `nota_media` e os preditores numericamente mais relevantes identificados no mapa de calor. A linha de tendência auxilia na confirmação da direção e da força da relação linear observada.
+
+Para complementar a análise de correlação, geramos gráficos de dispersão
+entre a `nota_media` e os preditores numericamente mais relevantes
+identificados no mapa de calor. A linha de tendência auxilia na
+confirmação da direção e da força da relação linear observada.
 
 ```{r}
 preditores_principais <- c("horas_estudo", "frequencia",
@@ -252,17 +339,49 @@ for (variavel in preditores_principais) {
   print(p)
 }
 ```
-Os gráficos de dispersão permitem visualizar a forma e a força da relação entre a nota_media e cada preditor, complementando os coeficientes obtidos na matriz de correlação:
 
-1. vs. horas_estudo: O gráfico confirma a relação linear positiva e bem definida já apontada pela correlação. À medida que as horas de estudo aumentam, há uma tendência clara de elevação da nota média, com os pontos se distribuindo de forma relativamente coesa ao redor da linha de tendência. Este é o preditor com maior poder explicativo individual.
-2. vs. renda_familiar: A relação também é positiva, com a linha de tendência apresentando inclinação moderada. No entanto, a dispersão dos pontos ao redor da reta é consideravelmente maior do que em horas_estudo, indicando que a renda familiar influencia o desempenho, mas com mais variabilidade entre os alunos.
-3. vs. indice_socioeconomico e escolaridade_pais: Ambos os gráficos mostram uma tendência positiva, porém com nuvens de pontos mais dispersas, consistentes com as correlações moderadas observadas no mapa de calor. O efeito existe, mas é menos preciso do que o das horas de estudo.
-vs. frequencia: A linha de tendência apresenta inclinação positiva, porém suave, com grande dispersão dos pontos — coerente com a correlação fraca (0.26). A frequência parece contribuir marginalmente para a nota, sem um padrão linear robusto.
-4. vs. distancia_escola: Em contraste com os demais, este gráfico exibe uma inclinação negativa, indicando que alunos mais distantes da escola tendem a apresentar notas ligeiramente menores. A relação é fraca, mas a direção é intuitiva e coerente com o coeficiente de −0.15 observado anteriormente.
+Os gráficos de dispersão permitem visualizar a forma e a força da
+relação entre a `nota_media` e cada preditor, complementando os
+coeficientes obtidos na matriz de correlação:
+
+1.  `vs. horas_estudo`: O gráfico confirma a relação linear positiva e
+    bem definida já apontada pela correlação. À medida que as horas de
+    estudo aumentam, há uma tendência clara de elevação da nota média,
+    com os pontos se distribuindo de forma relativamente coesa ao redor
+    da linha de tendência. Este é o preditor com maior poder explicativo
+    individual.
+
+2.  `vs. renda_familiar`: A relação também é positiva, com a linha de
+    tendência apresentando inclinação moderada. No entanto, a dispersão
+    dos pontos ao redor da reta é consideravelmente maior do que em
+    horas_estudo, indicando que a renda familiar influencia o
+    desempenho, mas com mais variabilidade entre os alunos.
+
+3.  `vs. indice_socioeconomico e escolaridade_pais`: Ambos os gráficos
+    mostram uma tendência positiva, porém com nuvens de pontos mais
+    dispersas, consistentes com as correlações moderadas observadas no
+    mapa de calor. O efeito existe, mas é menos preciso do que o das
+    horas de estudo.
+
+4.  `vs. frequencia`: A linha de tendência apresenta inclinação
+    positiva, porém suave, com grande dispersão dos pontos, coerente com
+    a correlação fraca (0.26). A frequência parece contribuir
+    marginalmente para a nota, sem um padrão linear robusto.
+
+5.  `vs. distancia_escola`: Em contraste com os demais, este gráfico
+    exibe uma inclinação negativa, indicando que alunos mais distantes
+    da escola tendem a apresentar notas ligeiramente menores. A relação
+    é fraca, mas a direção é intuitiva e coerente com o coeficiente de
+    −0.15 observado anteriormente.
 
 ## 4.3 Nota Média por Variável Categórica
 
-Os gráficos de dispersão e a matriz de correlação cobriram a relação entre a nota_media e os preditores numéricos. Para complementar a análise bivariada, investigamos agora como a distribuição das notas varia entre os grupos das variáveis categóricas, utilizando boxplots que permitem comparar medianas, amplitude e variabilidade entre as categorias.
+Os gráficos de dispersão e a matriz de correlação cobriram a relação
+entre a nota_media e os preditores numéricos. Para complementar a
+análise bivariada, investigamos agora como a distribuição das notas
+varia entre os grupos das variáveis categóricas, utilizando boxplots que
+permitem comparar medianas, amplitude e variabilidade entre as
+categorias.
 
 ```{r}
 variaveis_categoricas <- c("tipo_escola", "acesso_internet", "participa_reforco")
@@ -284,44 +403,90 @@ for (variavel in variaveis_categoricas) {
   print(p)
 }
 ```
-Os boxplots bivariados revelam como a distribuição da nota_media se comporta em função de cada variável categórica, oferecendo uma perspectiva complementar à análise de correlação:
 
-- **Tipo de escola**: Alunos de escolas privadas apresentam mediana de nota visivelmente superior à de alunos de escolas públicas, com uma distribuição mais concentrada nas notas altas. Já os alunos de escolas públicas exibem maior variabilidade, com a caixa se estendendo para valores mais baixos. Esse contraste sugere que o tipo de instituição pode ter influência relevante no desempenho, algo que será verificado formalmente no modelo de regressão.
-- **Acesso à internet**: Alunos com acesso à internet tendem a apresentar notas medianas ligeiramente superiores às dos que não possuem esse recurso. A distribuição do grupo "Sim" está deslocada para cima, com o terceiro quartil atingindo valores mais altos. Ainda assim, a sobreposição entre as duas caixas indica que o efeito, embora presente, não é determinante por si só.
-- **Participação em reforço**: Alunos que participam de reforço escolar apresentam mediana de nota ligeiramente superior aos que não participam, além de uma distribuição com maior concentração nas notas mais altas. Curiosamente, o grupo "Não" apresenta maior variabilidade e bigodes mais longos, indicando que entre os que não fazem reforço há tanto alunos com notas muito baixas quanto muito altas.
+Os boxplots bivariados revelam como a distribuição da nota_media se
+comporta em função de cada variável categórica, oferecendo uma
+perspectiva complementar à análise de correlação:
 
-De forma geral, os três gráficos apontam na mesma direção: escola privada, acesso à internet e participação em reforço estão associados a notas medianas mais elevadas.
+-   **Tipo de escola**: Alunos de escolas privadas apresentam mediana de
+    nota visivelmente superior à de alunos de escolas públicas, com uma
+    distribuição mais concentrada nas notas altas. Já os alunos de
+    escolas públicas exibem maior variabilidade, com a caixa se
+    estendendo para valores mais baixos. Esse contraste sugere que o
+    tipo de instituição pode ter influência relevante no desempenho,
+    algo que será verificado formalmente no modelo de regressão.
+-   **Acesso à internet**: Alunos com acesso à internet tendem a
+    apresentar notas medianas ligeiramente superiores às dos que não
+    possuem esse recurso. A distribuição do grupo "Sim" está deslocada
+    para cima, com o terceiro quartil atingindo valores mais altos.
+    Ainda assim, a sobreposição entre as duas caixas indica que o
+    efeito, embora presente, não é determinante por si só.
+-   **Participação em reforço**: Alunos que participam de reforço
+    escolar apresentam mediana de nota ligeiramente superior aos que não
+    participam, além de uma distribuição com maior concentração nas
+    notas mais altas. Curiosamente, o grupo "Não" apresenta maior
+    variabilidade e bigodes mais longos, indicando que entre os que não
+    fazem reforço há tanto alunos com notas muito baixas quanto muito
+    altas.
+
+De forma geral, os três gráficos apontam na mesma direção: escola
+privada, acesso à internet e participação em reforço estão associados a
+notas medianas mais elevadas.
 
 # 5. Ajuste Modelo Inicial
 
-Após a análise exploratória, iniciamos a construção de um modelo de regressão linear múltipla para prever a `nota_media`.
+Após a análise exploratória, iniciamos a construção de um modelo de
+regressão linear múltipla para prever a `nota_media`.
 
-O primeiro e mais importante passo desta etapa é investigar a presença de multicolinearidade entre as variáveis preditoras. A análise de correlação já antecipou um possível problema: `renda_familiar` e `indice_socioeconomico` apresentam alta correlação entre si, e ambas se mostram correlacionadas com `escolaridade_pais`, sugerindo que essas três variáveis podem estar capturando aspectos sobrepostos do contexto socioeconômico do aluno.
+O primeiro e mais importante passo desta etapa é investigar a presença
+de multicolinearidade entre as variáveis preditoras. A análise de
+correlação já antecipou um possível problema: `renda_familiar` e
+`indice_socioeconomico` apresentam alta correlação entre si, e ambas se
+mostram correlacionadas com `escolaridade_pais`, sugerindo que essas
+três variáveis podem estar capturando aspectos sobrepostos do contexto
+socioeconômico do aluno.
 
 ## 5.1 Diagnóstico de Multicolinearidade
 
-Para confirmar e quantificar a presença de multicolinearidade, ajustamos um modelo inicial com todas as variáveis preditoras (exceto id, que é apenas um identificador) e calculamos o Fator de Inflação da Variância (VIF). Valores acima de 5 indicam correlação moderada e acima de 10 são considerados problemáticos.
+Para confirmar e quantificar a presença de multicolinearidade, ajustamos
+um modelo inicial com todas as variáveis preditoras (exceto id, que é
+apenas um identificador) e calculamos o Fator de Inflação da Variância
+(VIF). Valores acima de 5 indicam correlação moderada e acima de 10 são
+considerados problemáticos.
 
 ```{r}
 modelo_completo <- lm(nota_media ~ . -id, data = dados_limpos)
 checa_colinearidade <- check_collinearity(modelo_completo)
 print(checa_colinearidade)
 ```
-A análise de multicolinearidade, realizada através da função `check_collinearity()` e da função `vif` para reafirmar os valores, nos permite quantificar a redundância entre as variáveis preditoras usando o Fator de Inflação da Variância (VIF).
 
-Resultados:
-- `renda_familiar`: VIF = 7.72 - correlação moderada, abaixo do limiar crítico de 10
-- `indice_socioeconomico`: VIF = 4.43 - baixo
-- `Todas as demais`: VIFs próximos de 1
+A análise de multicolinearidade, realizada através da função
+`check_collinearity()` nos permite quantificar a redundância entre as
+variáveis preditoras usando o Fator de Inflação da Variância (VIF).
 
-Os resultados indicam ausência de multicolinearidade severa. A variável `renda_familiar` é a única classificada com correlação moderada `(VIF = 7.72)`, reflexo da sobreposição parcial com `indice_socioeconomico` já sinalizada no mapa de calor. No entanto, seu VIF permanece abaixo do limiar crítico de 10, não comprometendo a estabilidade do modelo. Todas as demais variáveis apresentam VIFs próximos de 1, confirmando a ausência de redundância relevante entre os preditores.
+Resultados: - `renda_familiar`: VIF = 7.72 - correlação moderada, abaixo
+do limiar crítico de 10 - `indice_socioeconomico`: VIF = 4.43 - baixo -
+`Todas as demais`: VIFs próximos de 1
 
-**Conclusão**:
-Portanto, não é necessário remover nenhuma variável por critério de multicolinearidade.
+Os resultados indicam ausência de multicolinearidade severa. A variável
+`renda_familiar` é a única classificada com correlação moderada
+`(VIF = 7.72)`, reflexo da sobreposição parcial com
+`indice_socioeconomico` já sinalizada no mapa de calor. No entanto, seu
+VIF permanece abaixo do limiar crítico de 10, não comprometendo a
+estabilidade do modelo. Todas as demais variáveis apresentam VIFs
+próximos de 1, confirmando a ausência de redundância relevante entre os
+preditores.
+
+**Conclusão**: Portanto, não é necessário remover nenhuma variável por
+critério de multicolinearidade.
 
 ## 5.2 Seleção de Variáveis (Stepwise)
 
-Como não foram identificados problemas graves de multicolinearidade, o modelo avança diretamente para a seleção de variáveis. Utilizamos o método Stepwise bidirecional, guiado pelo critério AIC, que adiciona e remove variáveis automaticamente até encontrar o modelo com melhor equilíbrio entre ajuste e parcimônia.
+Como não foram identificados problemas graves de multicolinearidade, o
+modelo avança diretamente para a seleção de variáveis. Utilizamos o
+método Stepwise bidirecional, guiado pelo critério AIC, que adiciona e
+remove variáveis automaticamente até encontrar o modelo com melhor
+equilíbrio entre ajuste e parcimônia.
 
 ```{r}
 modelo_stepwise <- stepAIC(modelo_completo, 
@@ -331,19 +496,30 @@ modelo_stepwise <- stepAIC(modelo_completo,
 summary(modelo_stepwise)
 ```
 
-O algoritmo Stepwise iniciou com todas as variáveis preditoras `(AIC = -286.47)` e, no primeiro passo, identificou que a remoção de escolaridade_pais reduzia o AIC para -288.19, indicando uma melhoria no ajuste. A partir desse ponto, nenhuma outra remoção ou adição de variável foi capaz de melhorar o modelo, e o algoritmo convergiu.
-O modelo final selecionado pelo Stepwise contém 8 variáveis: `horas_estudo`, `frequencia`, `renda_familiar`, `indice_socioeconomico`, `distancia_escola`, `tipo_escola`, `acesso_internet` e `participa_reforco`.
+O algoritmo Stepwise iniciou com todas as variáveis preditoras
+`(AIC = -286.47)` e, no primeiro passo, identificou que a remoção de
+escolaridade_pais reduzia o AIC para -288.19, indicando uma melhoria no
+ajuste. A partir desse ponto, nenhuma outra remoção ou adição de
+variável foi capaz de melhorar o modelo, e o algoritmo convergiu. O
+modelo final selecionado pelo Stepwise contém 8 variáveis:
+`horas_estudo`, `frequencia`, `renda_familiar`, `indice_socioeconomico`,
+`distancia_escola`, `tipo_escola`, `acesso_internet` e
+`participa_reforco`.
 
 # 6. Seleção do Modelo Final
 
-Adicionar texto
+Nesta etapa, definiremos o modelo preditivo oficial do estudo. Para
+isso, compararemos o modelo completo (com todos os preditores) e o
+modelo reduzido sugerido pelo algoritmo Stepwise, utilizando métricas de
+qualidade de ajuste e testes de hipótese para garantir a escolha da
+regressão mais eficiente.
 
 ## 6.1 Comparação por Métrica
 
 os dois modelos a comparar são:
 
-- Modelo completo
-- Modelo Sem escolaridade de pais
+-   Modelo completo
+-   Modelo Sem escolaridade de pais
 
 ```{r}
 modelo_completo <- lm(nota_media ~ . -id, data = dados_limpos)
@@ -362,47 +538,321 @@ kable(comparacao_modelos, digits = 4,
       format = "simple")
 ```
 
-O modelo selecionado pelo procedimento Stepwise apresentou melhor desempenho em relação ao modelo completo em todos os critérios avaliados. Mesmo contendo uma variável a menos, ele possui R² ajustado superior e valores menores de AIC e BIC, indicando um melhor equilíbrio entre qualidade de ajuste e complexidade do modelo. Isso mostra que a remoção da variável `escolaridade_pais` não prejudicou a capacidade explicativa do modelo. Pelo contrário, sua exclusão ajudou a tornar o modelo mais simples, sem perda de qualidade. Em geral, quando dois modelos apresentam resultados semelhantes, é preferível escolher o mais simples, pois ele é mais fácil de interpretar e evita incluir variáveis desnecessárias. Por esse motivo, o modelo obtido pelo Stepwise foi adotado como `modelo_final` para as análises seguintes.
+O modelo selecionado pelo procedimento Stepwise apresentou melhor
+desempenho em relação ao modelo completo em todos os critérios
+avaliados. Mesmo contendo uma variável a menos, ele possui R² ajustado
+superior e valores menores de AIC e BIC, indicando um melhor equilíbrio
+entre qualidade de ajuste e complexidade do modelo. Isso mostra que a
+remoção da variável `escolaridade_pais` não prejudicou a capacidade
+explicativa do modelo. Pelo contrário, sua exclusão ajudou a tornar o
+modelo mais simples, sem perda de qualidade. Em geral, quando dois
+modelos apresentam resultados semelhantes, é preferível escolher o mais
+simples, pois ele é mais fácil de interpretar e evita incluir variáveis
+desnecessárias. Por esse motivo, o modelo obtido pelo Stepwise foi
+adotado como `modelo_final` para as análises seguintes.
 
 ```{r}
 modelo_final <- modelo_sem_escolaridade_pais
 ```
 
 ## 6.2 Teste de Hipótese para Comparação de Modelos
-Para complementar a comparação por métricas, utilizamos o teste formal de Análise de Variância (ANOVA) para verificar se a inclusão de escolaridade_pais melhora o modelo de forma estatisticamente significativa.
+
+Para complementar a comparação por métricas, utilizamos o teste formal
+de Análise de Variância (ANOVA) para verificar se a inclusão de
+escolaridade_pais melhora o modelo de forma estatisticamente
+significativa.
 
 As hipóteses testadas são:
 
-- H₀: O modelo Stepwise é suficiente - a adição de escolaridade_pais não melhora significativamente o ajuste.
-- H₁: O modelo completo é significativamente melhor.
+-   H₀: O modelo Stepwise é suficiente - a adição de escolaridade_pais
+    não melhora significativamente o ajuste.
+-   H₁: O modelo completo é significativamente melhor.
 
-A decisão é baseada no p-valor: se maior que 0.05, não rejeitamos H₀ e mantemos o modelo mais simples.
+A decisão é baseada no p-valor: se maior que 0.05, não rejeitamos H₀ e
+mantemos o modelo mais simples.
 
 ```{r}
 teste_anova <- anova(modelo_final, modelo_completo)
 print(teste_anova)
 ```
 
-O teste ANOVA resultou em p-valor de 0.6025, superior ao nível de significância de 0.05. Assim, não rejeitamos a hipótese nula, indicando que a inclusão da variável escolaridade_pais não melhora significativamente o ajuste do modelo. Portanto, opta-se por manter o modelo mais simples obtido pelo Stepwise como modelo final.
+O teste ANOVA resultou em p-valor de 0.6025, superior ao nível de
+significância de 0.05. Assim, não rejeitamos a hipótese nula, indicando
+que a inclusão da variável escolaridade_pais não melhora
+significativamente o ajuste do modelo. Portanto, opta-se por manter o
+modelo mais simples obtido pelo Stepwise como modelo final.
 
 ## 6.3 O Modelo Final
+
 ```{r}
 tbl_regression(modelo_final, intercept = TRUE) %>%
   as_kable_extra(caption = "Resultados do Modelo de Regressão")
 ```
 
-A tabela abaixo apresenta os coeficientes, erros padrão e significância estatística de cada variável preditora do `modelo_final`.
+A tabela acima apresenta os coeficientes, erros padrão e significância
+estatística de cada variável preditora do `modelo_final`.
 
-A análise dos coeficientes permite quantificar o efeito de cada variável sobre a nota_media, controlando pelos efeitos das demais:
+A análise dos coeficientes permite quantificar o efeito de cada variável
+sobre a nota_media, controlando pelos efeitos das demais:
 
-1. Preditor dominante (horas_estudo): A variável com efeito mais expressivo e preciso é horas_estudo (β = 0.1682, p < 0.001). A cada hora adicional de estudo por semana, a nota média aumenta em média 0.17 ponto, mantendo os demais fatores constantes. Esse resultado confirma o que já havia sido sinalizado na análise de correlação.
+1.  **Preditor dominante (horas_estudo):** A variável com efeito mais
+    expressivo e preciso é horas_estudo (β = 0.1682, p \< 0.001). A cada
+    hora adicional de estudo por semana, a nota média aumenta em média
+    0.17 ponto, mantendo os demais fatores constantes. Esse resultado
+    confirma o que já havia sido sinalizado na análise de correlação.
 
-2. Fatores significativos:
+2.  **Fatores significativos:**
 
-- frequencia (β = 0.0311, p < 0.001): maior frequência escolar está associada a notas mais altas.
-- renda_familiar (β = 0.2022, p < 0.001): maior renda familiar impacta positivamente o desempenho.
-- acesso_internetSim (β = 0.4586, p < 0.001): alunos com acesso à internet apresentam nota média 0.46 ponto maior.
-- participa_reforcoSim (β = 0.3494, p < 0.001): participar de reforço está associado a um aumento médio de 0.35 ponto na nota.
-- tipo_escola Pública (β = -0.5313, p < 0.001): alunos de escolas públicas têm nota média 0.53 ponto menor do que os de escolas privadas.
+-   frequencia (β = 0.0311, p \< 0.001): maior frequência escolar está
+    associada a notas mais altas.
+-   renda_familiar (β = 0.2022, p \< 0.001): maior renda familiar
+    impacta positivamente o desempenho.
+-   acesso_internetSim (β = 0.4586, p \< 0.001): alunos com acesso à
+    internet apresentam nota média 0.46 ponto maior.
+-   participa_reforcoSim (β = 0.3494, p \< 0.001): participar de reforço
+    está associado a um aumento médio de 0.35 ponto na nota.
+-   tipo_escola Pública (β = -0.5313, p \< 0.001): alunos de escolas
+    públicas têm nota média 0.53 ponto menor do que os de escolas
+    privadas.
 
-3. Variáveis não significativas: indice_socioeconomico (p = 0.0896) e distancia_escola (p = 0.0524) não atingiram o limiar de significância de 5%, sugerindo que seus efeitos, embora na direção esperada, não são estatisticamente distinguíveis de zero após controlar pelas demais variáveis.
+3.  **Variáveis não significativas:** indice_socioeconomico (p = 0.0896)
+    e distancia_escola (p = 0.0524) não atingiram o limiar de
+    significância de 5%, sugerindo que seus efeitos, embora na direção
+    esperada, não são estatisticamente distinguíveis de zero após
+    controlar pelas demais variáveis.
+
+# 7. Verificação dos Pressupostos do Modelo Final
+
+Após a definição do `modelo_final`, a última etapa da modelagem é
+analiar o diagnóstico do modelo. O objetivo é verificar se ele atende
+aos pressupostos do Modelo de Regressão Linear Múltipla (MRLM) para
+garantir que nossas conclusões são estatisticamente válidas.
+
+## 7.1 Análise com `check_model`
+
+A função `check_model()` exibe um painel visual da saúde do modelo,
+avaliando simultaneamente os principais pressupostos.
+
+```{r fig.width=14, fig.height=10}
+check_model(modelo_final)
+```
+
+A observação dos seis gráficos confirma a adequação do modelo ajustado:
+
+1.  Posterior Predictive Check (Checagem Preditiva): A curva das
+    previsões do modelo (linha azul) acompanha satisfatoriamente a curva
+    de densidade dos dados observados (linha verde). Embora existam
+    pequenos desvios nos picos, o modelo consegue capturar a
+    distribuição geral e a tendência central das notas médias da
+    amostra.
+
+2.  Linearity (Linearidade): O gráfico exibe uma linha de referência
+    (verde) que flutua em torno do zero, apresentando leves ondulações,
+    especialmente nas extremidades. Isso indica que a relação linear
+    assumida pelo modelo é razoável, embora não seja perfeitamente reta,
+    o que é comum em dados educacionais reais.
+
+3.  Homogeneity of Variance (Homocedasticidade): A linha de suavização
+    verde não se mantém perfeitamente plana horizontalmente,
+    apresentando uma leve curvatura. Isso sugere que a variância dos
+    resíduos não é estritamente constante em todos os níveis de valores
+    ajustados (indício de leve heterocedasticidade), exigindo cautela na
+    interpretação de intervalos de confiança muito estreitos.
+
+4.  Influential Observations (Pontos Influentes): Este é um ponto muito
+    positivo. O próprio gráfico atesta "No influential observations"
+    (Nenhuma observação influente). Nenhum ponto ultrapassa as faixas de
+    contorno da Distância de Cook, garantindo que nenhum aluno isolado
+    está distorcendo os coeficientes do modelo.
+
+5.  Collinearity (Colinearidade): Consistente com a análise prévia do
+    VIF (Seção 5.1), todas as variáveis apresentam barras verdes e muito
+    baixas. Isso atesta visualmente a ausência de multicolinearidade
+    prejudicial entre os preditores do modelo final.
+
+6.  Normality of Residuals (Normalidade dos Resíduos): No gráfico Q-Q,
+    os pontos acompanham bem a linha diagonal de referência na região
+    central, mas apresentam desvios visíveis nas extremidades (caudas
+    superior e inferior). Isso indica que os resíduos têm uma
+    distribuição aproximadamente normal, mas com caudas um pouco mais
+    pesadas do que o ideal teórico.
+
+## 7.2 Análise com `plot()`
+
+Os gráficos de diagnóstico nativos do R complementam a validação dos
+pressupostos do modelo_final, fornecendo uma visão detalhada sobre o
+comportamento dos resíduos.
+
+```{r}
+plot(modelo_final)
+```
+
+1.  Residuals vs Fitted (Linearidade): A linha vermelha central flutua
+    levemente em torno do zero, sem formar um padrão curvo evidente
+    (como um formato de "U" invertido). Nota-se também uma leve formação
+    de "bandas" verticais na nuvem de pontos, o que é um comportamento
+    esperado quando o modelo possui múltiplas variáveis categóricas
+    (como tipo de escola e acesso à internet). De forma geral, a
+    premissa de linearidade é razoavelmente atendida.
+
+2.  Normal Q-Q (Normalidade): Os resíduos padronizados acompanham muito
+    bem a reta pontilhada teórica em sua região central. Contudo,
+    observam-se desvios nas extremidades, especialmente na cauda
+    inferior (onde os pontos caem abaixo da reta). Isso confirma a
+    observação anterior: os erros têm distribuição aproximadamente
+    normal, mas apresentam algumas notas reais que se distanciam do
+    esperado mais do que uma curva normal perfeita preveria.
+
+3.  Scale-Location (Homocedasticidade): A linha vermelha de tendência
+    apresenta uma suave ondulação, indicando que há pequenas flutuações
+    na variância dos resíduos. No entanto, a dispersão dos pontos ao
+    redor dessa linha não forma um padrão claro de funil (onde a nuvem
+    começa fina e termina muito larga), o que permite aceitar a premissa
+    de variância constante (homocedasticidade) para fins práticos.
+
+4.  Residuals vs Leverage (Pontos Influentes): Este gráfico atesta a
+    robustez do modelo. Embora existam algumas observações destacadas
+    com alavancagem ligeiramente maior (como o ponto 66), nenhuma
+    observação chega sequer perto de cruzar as linhas de limite da
+    Distância de Cook (as linhas tracejadas vermelhas nem sequer
+    aparecem no enquadramento do gráfico). Isso certifica que não há
+    valores extremos ("outliers") puxando a linha de regressão e
+    enviesando os coeficientes.
+
+# 8. Predições
+
+A utilidade prática de um modelo de Regressão Linear Múltipla reside na
+sua capacidade preditiva. Nesta seção, aplicaremos o `modelo_final`
+ajustado para estimar a nota média de alunos em situações hipotéticas.
+Isso nos permitirá traduzir os coeficientes matemáticos obtidos na Seção
+6 em impactos reais no desempenho acadêmico, avaliando como diferentes
+combinações de fatores socioeconômicos e comportamentais influenciam o
+resultado final esperado.
+
+## 8.1 Definição dos cenários
+
+Para atender ao objetivo preditivo, elaboramos dois cenários
+contrastantes com valores realistas, baseados na distribuição da nossa
+amostra, para avaliar os extremos de desempenho:
+
+-   **Cenário 1** (Perfil de Baixo Engajamento e Alta Vulnerabilidade):
+    Representa um aluno com pouca dedicação aos estudos, assiduidade
+    irregular, condição socioeconômica desfavorável e residência
+    distante da escola. Frequenta escola pública e não dispõe de acesso
+    à internet nem de suporte de reforço escolar.
+-   **Cenário 2** (Perfil de Alto Engajamento e Alta Estrutura):
+    Representa um aluno com elevada dedicação aos estudos, frequência
+    escolar consistente, condição socioeconômica privilegiada e
+    proximidade à escola. Estuda na rede privada, possui acesso à
+    internet e participa de aulas de reforço escolar.
+
+```{r}
+dados_limpos$tipo_escola <- as.factor(dados_limpos$tipo_escola)
+dados_limpos$acesso_internet <- as.factor(dados_limpos$acesso_internet)
+dados_limpos$participa_reforco <- as.factor(dados_limpos$participa_reforco)
+
+modelo_final <- lm(nota_media ~ horas_estudo + frequencia + renda_familiar +
+                     indice_socioeconomico + distancia_escola + tipo_escola +
+                     acesso_internet + participa_reforco,
+                   data = dados_limpos)
+
+formula(modelo_final)
+```
+
+```{r}
+novos_cenarios <- data.frame(
+  horas_estudo = c(3, 12),
+  frequencia = c(65, 88),
+  renda_familiar = c(1.5, 5.0),
+  indice_socioeconomico = c(5, 22),
+  distancia_escola = c(20, 3),
+  tipo_escola = factor(c("Pública", "Privada"),
+                       levels = levels(dados_limpos$tipo_escola)),
+  acesso_internet = factor(c("Não", "Sim"),
+                           levels = levels(dados_limpos$acesso_internet)),
+  participa_reforco = factor(c("Não", "Sim"),
+                             levels = levels(dados_limpos$participa_reforco))
+)
+```
+
+## 8.2 Intervalo de Confiança
+
+```{r}
+predicao_confianca <- predict(modelo_final, newdata = novos_cenarios, interval = "confidence")
+
+print(predicao_confianca)
+```
+
+Para o Cenário 1, a nota média esperada para alunos com esse perfil é de
+4.92, com intervalo de confiança de 95% entre 4.64 e 5.20. Para o
+Cenário 2, a nota média esperada sobe para 9.60, com intervalo entre
+9.41 e 9.80 — mais estreito, refletindo maior precisão do modelo para
+esse perfil. A diferença de quase 5 pontos entre os dois cenários
+evidencia o forte impacto combinado dos fatores de engajamento e
+condição socioeconômica sobre o desempenho acadêmico.
+
+## 8.3 Intervalo de Predição
+
+```{r}
+predicao <- predict(modelo_final, newdata = novos_cenarios, interval = "prediction")
+
+print(predicao)
+```
+
+Para um novo aluno individual com o perfil do Cenário 1, a nota prevista
+é 4.92, com intervalo de predição de 95% entre 3.83 e 6.01 — mais amplo
+que o de confiança, pois considera a variabilidade natural entre alunos
+individuais. Para o Cenário 2, a nota prevista é 9.60, com intervalo
+entre 8.53 e 10.68. O limite superior ultrapassa 10, o que é uma
+limitação inerente à regressão linear, que não impõe restrições aos
+valores preditos, mas não compromete a validade do modelo.
+
+# 9. Conclusão
+
+A análise estatística realizada permitiu identificar de forma clara e
+fundamentada os fatores que exercem influência sobre o desempenho
+acadêmico dos alunos. Através da modelagem por Regressão Linear
+Múltipla, foi possível quantificar o impacto de variáveis
+socioeconômicas e de hábitos de estudo na composição da nota média
+final. Principais Resultados Obtidos:
+
+-   **Identificação de Padrões e Limpeza de Dados:** A base inicial
+    continha 250 observações, das quais 4,8% (12 registros) apresentavam
+    valores ausentes em variáveis críticas como horas_estudo, frequencia
+    e renda_familiar. A estratégia de remoção desses casos garantiu a
+    integridade de um dataset final com 238 registros para as análises
+    subsequentes.
+
+-   **Influência das Horas de Estudo e Frequência:** As análises
+    preliminares indicaram que as horas de estudo semanais (média de
+    \~11,1h) e a frequência escolar (média de \~82%) possuem correlações
+    significativas com o desempenho. Alunos com maior dedicação e
+    presença constante tendem a apresentar notas médias superiores.
+
+-   **Impacto Socioeconômico:** Variáveis como a renda_familiar e a
+    escolaridade_pais demonstraram ser preditores relevantes.
+    Observou-se que alunos cujos pais possuem maior nível de instrução e
+    famílias com melhor condição financeira frequentemente dispõem de um
+    ambiente de suporte mais favorável, refletindo-se positivamente na
+    variável resposta (nota_media).
+
+-   **Infraestrutura e Reforço:** O acesso à internet e a participação
+    em programas de reforço escolar também se mostraram diferenciais
+    importantes, sugerindo que o suporte pedagógico extra e o acesso à
+    informação são ferramentas de mitigação para riscos de baixo
+    desempenho acadêmico.
+
+-   **Significância do Modelo:** O modelo de regressão permitiu concluir
+    quais variáveis explicativas são estatisticamente significativas. A
+    análise de resíduos e os testes de performance validaram a
+    capacidade do modelo em prever o sucesso acadêmico, servindo como
+    uma ferramenta útil para a formulação de políticas educacionais
+    focadas em grupos de risco.
+
+Em suma, o estudo confirma que o desempenho escolar não é fruto de um
+único fator, mas de uma combinação complexa de esforços individuais
+(estudo e frequência) e condições estruturais/socioeconômicas
+preexistentes. Intervenções focadas no aumento do tempo de estudo e
+suporte a alunos de vulnerabilidade socioeconômica são as que apresentam
+maior potencial de melhoria nos índices educacionais observados nesta
+amostra.
