@@ -193,3 +193,216 @@ A partir da visualização da distribuição de alunos nas categorias, é possí
 Essa distribuição desigual é um ponto de atenção para a etapa de modelagem, pois o modelo terá uma base de dados mais robusta para as tecnologias predominantes.
 
 De forma geral, o perfil predominante da amostra é de alunos de escola pública, com acesso à internet e sem participação em reforço. Essa distribuição desigual é um ponto de atenção para a regressão: categorias menos representadas tendem a gerar estimativas com maior incerteza.
+
+# 4. Análise das Variáveis
+
+Para responder ao objetivo central do relatório — identificar quais fatores influenciam o desempenho acadêmico — é necessário ir além da descrição individual das variáveis e investigar como elas se relacionam entre si.
+
+Esta seção conduz essa investigação em três frentes complementares: uma análise de correlação entre todas as variáveis numéricas, para quantificar o grau de associação linear entre os preditores e a variável resposta e identificar possíveis problemas de multicolinearidade; gráficos de dispersão, para visualizar a forma da relação entre cada preditor numérico e a nota_media; e boxplots bivariados, para examinar como a distribuição das notas se comporta em função das variáveis categóricas.
+
+## 4.1 Correlação das Variáveis
+Antes de construir o modelo, é importante entender o grau de associação linear entre as variáveis numéricas. O mapa de calor a seguir apresenta os coeficientes de correlação de Pearson para todos os pares de variáveis, permitindo identificar tanto os preditores mais promissores para explicar a `nota_media` quanto possíveis indícios de multicolinearidade — situação em que duas variáveis explicativas carregam informações muito semelhantes, o que pode comprometer a estabilidade dos coeficientes no modelo.
+
+```{r}
+dados_numericos <- dados_limpos %>%
+  select_if(is.numeric)
+
+M <- cor(dados_numericos)
+
+ggcorrplot(M,
+           method = "square",
+           type = "lower",
+           lab = TRUE,
+           lab_size = 3,
+           colors = c("#20B2AA", "white", "#FA8072"),
+           title = "Mapa de Calor das Correlações")
+
+print(sort(M[,"nota_media"], decreasing = TRUE))
+```
+A matriz de correlação revela informações importantes sobre as relações entre as variáveis do estudo:
+
+1. **Preditor dominante (horas_estudo)**: A variável com maior correlação com a nota_media é horas_estudo (0.74), indicando uma associação linear positiva e forte — alunos que dedicam mais horas ao estudo tendem a apresentar notas mais elevadas. Este é, de longe, o preditor com maior poder explicativo individual.
+
+2. **Multicolinearidade suspeita**: Destaca-se a alta correlação (0.76–0.78) entre renda_familiar e indice_socioeconomico. Como ambas medem aspectos muito próximos da condição socioeconômica do aluno, incluí-las simultaneamente no modelo pode gerar instabilidade nos coeficientes. Essa questão será tratada formalmente na etapa de diagnóstico VIF.
+
+3. **Preditores de impacto moderado**: As variáveis renda_familiar (0.43), indice_socioeconomico (0.30) e escolaridade_pais (0.36) apresentam correlações moderadas e positivas com a nota_media, sugerindo que o contexto socioeconômico do aluno contribui para o desempenho, embora não de forma tão expressiva quanto as horas de estudo.
+
+4. **Preditores de baixo impacto**: frequencia (0.26) apresenta correlação fraca, e distancia_escola (−0.15) mostra uma leve associação negativa — alunos mais distantes da escola tendem a ter notas ligeiramente menores, o que é intuitivo. Por fim, id não apresenta correlação relevante com nenhuma variável, como esperado, por ser apenas um identificador.
+
+## 4.2 Dispersão
+Para complementar a análise de correlação, geramos gráficos de dispersão entre a `nota_media` e os preditores numericamente mais relevantes identificados no mapa de calor. A linha de tendência auxilia na confirmação da direção e da força da relação linear observada.
+
+```{r}
+preditores_principais <- c("horas_estudo", "frequencia",
+                           "renda_familiar", "indice_socioeconomico",
+                           "escolaridade_pais", "distancia_escola")
+
+for (variavel in preditores_principais) {
+
+  p <- ggplot(dados_limpos, aes(x = .data[[variavel]], y = `nota_media`)) +
+    geom_point(alpha = 0.5, color = "#20B2AA") +
+    geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "#FA8072") +
+    labs(
+      title = paste("Dispersão: Nota Média vs", gsub("_", " ", variavel)),
+      x = gsub("_", " ", variavel),
+      y = "Nota Média"
+    ) +
+    theme_minimal()
+
+  print(p)
+}
+```
+Os gráficos de dispersão permitem visualizar a forma e a força da relação entre a nota_media e cada preditor, complementando os coeficientes obtidos na matriz de correlação:
+
+1. vs. horas_estudo: O gráfico confirma a relação linear positiva e bem definida já apontada pela correlação. À medida que as horas de estudo aumentam, há uma tendência clara de elevação da nota média, com os pontos se distribuindo de forma relativamente coesa ao redor da linha de tendência. Este é o preditor com maior poder explicativo individual.
+2. vs. renda_familiar: A relação também é positiva, com a linha de tendência apresentando inclinação moderada. No entanto, a dispersão dos pontos ao redor da reta é consideravelmente maior do que em horas_estudo, indicando que a renda familiar influencia o desempenho, mas com mais variabilidade entre os alunos.
+3. vs. indice_socioeconomico e escolaridade_pais: Ambos os gráficos mostram uma tendência positiva, porém com nuvens de pontos mais dispersas, consistentes com as correlações moderadas observadas no mapa de calor. O efeito existe, mas é menos preciso do que o das horas de estudo.
+vs. frequencia: A linha de tendência apresenta inclinação positiva, porém suave, com grande dispersão dos pontos — coerente com a correlação fraca (0.26). A frequência parece contribuir marginalmente para a nota, sem um padrão linear robusto.
+4. vs. distancia_escola: Em contraste com os demais, este gráfico exibe uma inclinação negativa, indicando que alunos mais distantes da escola tendem a apresentar notas ligeiramente menores. A relação é fraca, mas a direção é intuitiva e coerente com o coeficiente de −0.15 observado anteriormente.
+
+## 4.3 Nota Média por Variável Categórica
+
+Os gráficos de dispersão e a matriz de correlação cobriram a relação entre a nota_media e os preditores numéricos. Para complementar a análise bivariada, investigamos agora como a distribuição das notas varia entre os grupos das variáveis categóricas, utilizando boxplots que permitem comparar medianas, amplitude e variabilidade entre as categorias.
+
+```{r}
+variaveis_categoricas <- c("tipo_escola", "acesso_internet", "participa_reforco")
+
+for (variavel in variaveis_categoricas) {
+  
+  p <- ggplot(dados_limpos, aes(x = .data[[variavel]], 
+                                 y = nota_media, 
+                                 fill = .data[[variavel]])) +
+    geom_boxplot() +
+    labs(
+      title = paste("Nota Média por", gsub("_", " ", variavel)),
+      x = gsub("_", " ", variavel),
+      y = "Nota Média"
+    ) +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  print(p)
+}
+```
+Os boxplots bivariados revelam como a distribuição da nota_media se comporta em função de cada variável categórica, oferecendo uma perspectiva complementar à análise de correlação:
+
+- **Tipo de escola**: Alunos de escolas privadas apresentam mediana de nota visivelmente superior à de alunos de escolas públicas, com uma distribuição mais concentrada nas notas altas. Já os alunos de escolas públicas exibem maior variabilidade, com a caixa se estendendo para valores mais baixos. Esse contraste sugere que o tipo de instituição pode ter influência relevante no desempenho, algo que será verificado formalmente no modelo de regressão.
+- **Acesso à internet**: Alunos com acesso à internet tendem a apresentar notas medianas ligeiramente superiores às dos que não possuem esse recurso. A distribuição do grupo "Sim" está deslocada para cima, com o terceiro quartil atingindo valores mais altos. Ainda assim, a sobreposição entre as duas caixas indica que o efeito, embora presente, não é determinante por si só.
+- **Participação em reforço**: Alunos que participam de reforço escolar apresentam mediana de nota ligeiramente superior aos que não participam, além de uma distribuição com maior concentração nas notas mais altas. Curiosamente, o grupo "Não" apresenta maior variabilidade e bigodes mais longos, indicando que entre os que não fazem reforço há tanto alunos com notas muito baixas quanto muito altas.
+
+De forma geral, os três gráficos apontam na mesma direção: escola privada, acesso à internet e participação em reforço estão associados a notas medianas mais elevadas.
+
+# 5. Ajuste Modelo Inicial
+
+Após a análise exploratória, iniciamos a construção de um modelo de regressão linear múltipla para prever a `nota_media`.
+
+O primeiro e mais importante passo desta etapa é investigar a presença de multicolinearidade entre as variáveis preditoras. A análise de correlação já antecipou um possível problema: `renda_familiar` e `indice_socioeconomico` apresentam alta correlação entre si, e ambas se mostram correlacionadas com `escolaridade_pais`, sugerindo que essas três variáveis podem estar capturando aspectos sobrepostos do contexto socioeconômico do aluno.
+
+## 5.1 Diagnóstico de Multicolinearidade
+
+Para confirmar e quantificar a presença de multicolinearidade, ajustamos um modelo inicial com todas as variáveis preditoras (exceto id, que é apenas um identificador) e calculamos o Fator de Inflação da Variância (VIF). Valores acima de 5 indicam correlação moderada e acima de 10 são considerados problemáticos.
+
+```{r}
+modelo_completo <- lm(nota_media ~ . -id, data = dados_limpos)
+checa_colinearidade <- check_collinearity(modelo_completo)
+print(checa_colinearidade)
+```
+A análise de multicolinearidade, realizada através da função `check_collinearity()` e da função `vif` para reafirmar os valores, nos permite quantificar a redundância entre as variáveis preditoras usando o Fator de Inflação da Variância (VIF).
+
+Resultados:
+- `renda_familiar`: VIF = 7.72 - correlação moderada, abaixo do limiar crítico de 10
+- `indice_socioeconomico`: VIF = 4.43 - baixo
+- `Todas as demais`: VIFs próximos de 1
+
+Os resultados indicam ausência de multicolinearidade severa. A variável `renda_familiar` é a única classificada com correlação moderada `(VIF = 7.72)`, reflexo da sobreposição parcial com `indice_socioeconomico` já sinalizada no mapa de calor. No entanto, seu VIF permanece abaixo do limiar crítico de 10, não comprometendo a estabilidade do modelo. Todas as demais variáveis apresentam VIFs próximos de 1, confirmando a ausência de redundância relevante entre os preditores.
+
+**Conclusão**:
+Portanto, não é necessário remover nenhuma variável por critério de multicolinearidade.
+
+## 5.2 Seleção de Variáveis (Stepwise)
+
+Como não foram identificados problemas graves de multicolinearidade, o modelo avança diretamente para a seleção de variáveis. Utilizamos o método Stepwise bidirecional, guiado pelo critério AIC, que adiciona e remove variáveis automaticamente até encontrar o modelo com melhor equilíbrio entre ajuste e parcimônia.
+
+```{r}
+modelo_stepwise <- stepAIC(modelo_completo, 
+                           direction = "both",
+                           trace = TRUE)
+
+summary(modelo_stepwise)
+```
+
+O algoritmo Stepwise iniciou com todas as variáveis preditoras `(AIC = -286.47)` e, no primeiro passo, identificou que a remoção de escolaridade_pais reduzia o AIC para -288.19, indicando uma melhoria no ajuste. A partir desse ponto, nenhuma outra remoção ou adição de variável foi capaz de melhorar o modelo, e o algoritmo convergiu.
+O modelo final selecionado pelo Stepwise contém 8 variáveis: `horas_estudo`, `frequencia`, `renda_familiar`, `indice_socioeconomico`, `distancia_escola`, `tipo_escola`, `acesso_internet` e `participa_reforco`.
+
+# 6. Seleção do Modelo Final
+
+Adicionar texto
+
+## 6.1 Comparação por Métrica
+
+os dois modelos a comparar são:
+
+- Modelo completo
+- Modelo Sem escolaridade de pais
+
+```{r}
+modelo_completo <- lm(nota_media ~ . -id, data = dados_limpos)
+modelo_sem_escolaridade_pais <- lm(nota_media ~ . -id -escolaridade_pais, data = dados_limpos)
+
+comparacao_modelos <- data.frame(
+  Modelo = c("Modelo Completo", "Modelo Stepwise (sem escolaridade_pais)"),
+  R2_Ajustado = c(summary(modelo_completo)$adj.r.squared, 
+                  summary(modelo_sem_escolaridade_pais)$adj.r.squared),
+  AIC = c(AIC(modelo_completo), AIC(modelo_sem_escolaridade_pais)),
+  BIC = c(BIC(modelo_completo), BIC(modelo_sem_escolaridade_pais))
+)
+
+kable(comparacao_modelos, digits = 4,
+      caption = "Comparação de Métricas",
+      format = "simple")
+```
+
+O modelo selecionado pelo procedimento Stepwise apresentou melhor desempenho em relação ao modelo completo em todos os critérios avaliados. Mesmo contendo uma variável a menos, ele possui R² ajustado superior e valores menores de AIC e BIC, indicando um melhor equilíbrio entre qualidade de ajuste e complexidade do modelo. Isso mostra que a remoção da variável `escolaridade_pais` não prejudicou a capacidade explicativa do modelo. Pelo contrário, sua exclusão ajudou a tornar o modelo mais simples, sem perda de qualidade. Em geral, quando dois modelos apresentam resultados semelhantes, é preferível escolher o mais simples, pois ele é mais fácil de interpretar e evita incluir variáveis desnecessárias. Por esse motivo, o modelo obtido pelo Stepwise foi adotado como `modelo_final` para as análises seguintes.
+
+```{r}
+modelo_final <- modelo_sem_escolaridade_pais
+```
+
+## 6.2 Teste de Hipótese para Comparação de Modelos
+Para complementar a comparação por métricas, utilizamos o teste formal de Análise de Variância (ANOVA) para verificar se a inclusão de escolaridade_pais melhora o modelo de forma estatisticamente significativa.
+
+As hipóteses testadas são:
+
+- H₀: O modelo Stepwise é suficiente - a adição de escolaridade_pais não melhora significativamente o ajuste.
+- H₁: O modelo completo é significativamente melhor.
+
+A decisão é baseada no p-valor: se maior que 0.05, não rejeitamos H₀ e mantemos o modelo mais simples.
+
+```{r}
+teste_anova <- anova(modelo_final, modelo_completo)
+print(teste_anova)
+```
+
+O teste ANOVA resultou em p-valor de 0.6025, superior ao nível de significância de 0.05. Assim, não rejeitamos a hipótese nula, indicando que a inclusão da variável escolaridade_pais não melhora significativamente o ajuste do modelo. Portanto, opta-se por manter o modelo mais simples obtido pelo Stepwise como modelo final.
+
+## 6.3 O Modelo Final
+```{r}
+tbl_regression(modelo_final, intercept = TRUE) %>%
+  as_kable_extra(caption = "Resultados do Modelo de Regressão")
+```
+
+A tabela abaixo apresenta os coeficientes, erros padrão e significância estatística de cada variável preditora do `modelo_final`.
+
+A análise dos coeficientes permite quantificar o efeito de cada variável sobre a nota_media, controlando pelos efeitos das demais:
+
+1. Preditor dominante (horas_estudo): A variável com efeito mais expressivo e preciso é horas_estudo (β = 0.1682, p < 0.001). A cada hora adicional de estudo por semana, a nota média aumenta em média 0.17 ponto, mantendo os demais fatores constantes. Esse resultado confirma o que já havia sido sinalizado na análise de correlação.
+
+2. Fatores significativos:
+
+- frequencia (β = 0.0311, p < 0.001): maior frequência escolar está associada a notas mais altas.
+- renda_familiar (β = 0.2022, p < 0.001): maior renda familiar impacta positivamente o desempenho.
+- acesso_internetSim (β = 0.4586, p < 0.001): alunos com acesso à internet apresentam nota média 0.46 ponto maior.
+- participa_reforcoSim (β = 0.3494, p < 0.001): participar de reforço está associado a um aumento médio de 0.35 ponto na nota.
+- tipo_escola Pública (β = -0.5313, p < 0.001): alunos de escolas públicas têm nota média 0.53 ponto menor do que os de escolas privadas.
+
+3. Variáveis não significativas: indice_socioeconomico (p = 0.0896) e distancia_escola (p = 0.0524) não atingiram o limiar de significância de 5%, sugerindo que seus efeitos, embora na direção esperada, não são estatisticamente distinguíveis de zero após controlar pelas demais variáveis.
