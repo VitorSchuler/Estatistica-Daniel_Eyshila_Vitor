@@ -2,16 +2,16 @@
 title: "Relatório de Análise de Regressão Linear Múltipla - 3º Estágio"
 subtitle: "Disciplina: Estatística Aplicada"
 author:
-
-    - "Eyshila Buriti de Araujo Azevedo - 123110472"
-
-    - "Daniel Cordeiro Mantovani Soares - 121210386"
-
-    - "Vitor Schuler Velloso Borges - 123110668"
-    date:today
-    format:pdf
-    toc:true
-    lang:pt-BR
+  - "Eyshila Buriti de Araujo Azevedo - 123110472"
+  - "Daniel Cordeiro Mantovani Soares - 121210386"
+  - "Vitor Schuler Velloso Borges - 123110668"
+date: today
+format: pdf
+toc: true
+lang: portuguese
+execute:
+  echo: false
+  warning: false
 ---
 
 # 1. Introdução
@@ -20,54 +20,176 @@ O presente relatório tem como objetivo analisar os fatores que influenciam o de
 
 # 2. Descrição da Base de Dados
 
-A base de dados é composta por indicadores educacionais e socioeconômicos. A variável resposta a ser modelada é a nota_media. As demais variáveis atuarão como potenciais previsoras:
+A base de dados é composta por indicadores educacionais e socioeconômicos, com 250 observações e 11 variáveis. A variável resposta a ser modelada é a nota_media. As demais variáveis atuarão como potenciais previsoras:
 
-    id: Identificador do aluno
+-   **id**: Identificador do aluno (ID).
+-   **nota_media**: Nota média final, 0-10 (Numérica) - Variável Dependente.
+-   **horas_estudo**: Horas de estudo por semana (Numérica).
+-   **frequencia**: Frequência escolar em percentual (Numérica).
+-   **renda_familiar**: Renda familiar em milhares de reais (Numérica).
+-   **indice_socioeconomico**: Índice socioeconômico de 0 a 100 (Numérica).
+-   **escolaridade_pais**: Anos de escolaridade dos pais (Numérica).
+-   **distancia_escola**: Distância até a escola, em km (Numérica).
+-   **tipo_escola**: Tipo de escola, Pública ou Privada (Categórica).
+-   **acesso_internet**: Acesso à internet em casa, Sim ou Não (Categórica).
+-   **participa_reforco**: Participa de reforço escolar, Sim ou Não (Categórica).
 
-    nota_media: Nota média final (0 a 10) - Variável Resposta
+## 2.1 Preparação
 
-    horas_estudo: Horas de estudo por semana (Numérica)
+Instalação e carregamento dos pacotes e funções necessárias.
 
-    frequencia: Frequência escolar em percentual (Numérica)
+```{r}
+# Instalação de pacotes e funções
+# install.packages("skimr")
+# install.packages("kableExtra")
+# install.packages("readxl")
+# install.packages("tidyverse")
+# install.packages("ggplot2")
+# install.packages("gridExtra")
+# install.packages("ggcorrplot")
+# install.packages("performance")
+# install.packages("MASS")
+# install.packages("knitr")
+# install.packages("gtsummary")
+```
 
-    renda_familiar: Renda familiar em milhares de reais (Numérica)
-
-    indice_socioeconomico: Índice socioeconômico de 0 a 100 (Numérica)
-
-    escolaridade_pais: Anos de escolaridade dos pais (Numérica)
-
-    distancia_escola: Distância até a escola em km (Numérica)
-
-    tipo_escola: Tipo de escola, Pública ou Privada (Categórica)
-
-    acesso_internet: Acesso à internet em casa, Sim ou Não (Categórica)
-
-    participa_reforco: Participa de reforço escolar, Sim ou Não (Categórica)
-
-```{r setup, message=FALSE, warning=FALSE}
-library(tidyverse)
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(knitr)
+library(kableExtra)
+library(readxl)
 library(skimr)
+library(ggplot2)
+library(gridExtra)
+library(ggcorrplot)
+library(performance)
+library(MASS)
+library(knitr)
+library(gtsummary)
+library(tidyverse)
 ```
 
-```{r carga-dados, message=FALSE}
+## 2.2 Os Dados
 
-dados <- read_csv2("dados/dados_brutos.csv")
-dicionario <- read_csv2("dados/dicionario.csv")
+Os dados utilizados neste estudo foram estraídos da base `dados_brutos.csv`. A seguir, segue uma visualização da estrutura e do conteúdo das variáveis.
+
+```{r}
+dados <- read.csv2("dados_brutos.csv", fileEncoding = "latin1")
+kable(head(dados, 5), format = "latex", booktabs = TRUE) %>%
+kable_styling(latex_options = c("scale_down", "HOLD_position"))
+head(dados)
 ```
-# 3. Análise Exploratória de Dados (EDA)
 
-Abaixo, apresentamos um resumo estatístico da base para identificar a quantidade de observações, possíveis valores ausentes (NAs) e a distribuição geral dos dados.
+```{r}
+nrow(dados) # linhas
+ncol(dados) # colunas
+```
 
-```{r exploratoria}
+# 3. Análise Exploratória de Dados
+
+Abaixo, apresentamos um resumo estatístico da base para identificar possíveis valores ausentes e a distribuição geral dos dados.
+
+```{r}
 skim(dados)
 ```
 
-Como podemos observar no resumo estatístico, as variáveis categóricas estão completas. No entanto, identificamos valores ausentes (NAs) nas variáveis numéricas horas_estudo (6), frequencia (3) e renda_familiar (3).
+## 3.1 Análise de Valores Ausentes
 
-Como o número de dados faltantes é muito pequeno em relação ao tamanho total da amostra (250 observações), a estratégia adotada foi a remoção dessas linhas incompletas, gerando uma base de dados limpa para não comprometer o modelo de Regressão Linear.
-Snippet de código
+Como podemos observar no resumo estatístico, as variáveis categóricas estão completas. No entanto, identificamos valores ausentes (`NA`) nas variáveis numéricas horas_estudo (6), frequencia (3) e renda_familiar (3).
 
-# Removendo as linhas com valores ausentes
-```{r limpeza}
-dados_limpos <- dados |> drop_na()
+Para garantir a integridade e a precisão das análises posteiores, faz-se necessário realizar um tratamento para esse caso. Como o número de dados faltantes é muito pequeno em relação ao tamanho total da amostra, 12 registros nulos (4,8% do total de 250 observações), a estratégia adotada foi a remoção dessas linhas incompletas, gerando uma base de dados limpa para não comprometer o modelo.
+
+```{r}
+dados_limpos <- dados[complete.cases(dados), ]
+
+cat("Linhas no dataset antes da correção", nrow(dados), "\n")
+cat("Linhas no dataset após correção:", nrow(dados_limpos), "\n")
 ```
+
+```{r}
+View(dados_limpos)
+```
+
+## 3.2 Análise de Outliers
+
+Adicionar texto de explicação.
+
+```{r}
+mostrar_outliers <- function(dados_limpos, nome_da_coluna) {
+
+  dados_da_coluna <- dados_limpos[[nome_da_coluna]]
+
+  boxplot(dados_da_coluna,
+          main = paste("Boxplot de", gsub("_", " ", nome_da_coluna)),
+          ylab = "Valores",
+          col = "salmon")
+  outliers <- boxplot.stats(dados_da_coluna)$out
+
+  cat("\n")
+
+  if (length(outliers) > 0) {
+    cat(paste("Outliers encontrados na variável '", nome_da_coluna, "': ", sep = ""))
+    cat(paste(outliers, collapse = ", "))
+  } else {
+    cat(paste("Nenhum outlier encontrado na variável '", nome_da_coluna, "'.", sep = ""))
+  }
+}
+
+variaveis_numericas <- dados_limpos %>%
+  select_if(is.numeric) %>%
+  names()
+
+for (variavel in variaveis_numericas) {
+  mostrar_outliers(dados_limpos, variavel)
+}
+```
+
+Adicionar texto de conclusão outliers.
+
+## 3.3 Variáveis qualitativas
+
+As variáveis qualitativas (ou categóricas) representam grupos, rótulos ou características não numéricas. Diferentemente das variáveis quantitativas, sua análise não envolve médias ou desvios, mas sim a frequência com que cada categoria aparece na amostra, o que nos permite compreender a composição do conjunto de dados.
+
+As três variáveis qualitativas presentes m nosso conjunto de dados são:
+- **tipo_escola**: indica se o aluno frequenta uma instituição (Pública ou Privada).
+- **acesso_internet**: registra se o aluno possui acesso à internet em casa (Sim ou Não).
+- **participa_reforco**: indica se o aluno participa de aulas de reforço escolar (Sim ou Não).
+
+Os gráficos de barras a seguir permitem visualizar a distribuição dos alunos entre essas categorias, sendo uma etapa importante para identificar possíveis desequilíbrios na amostra que possam influenciar a modelagem posterior.
+
+```{r}
+# Tipo de Escola
+ggplot(dados_limpos, aes(x = tipo_escola, fill = tipo_escola)) +
+  geom_bar() +
+  labs(title = "Distribuição por Tipo de Escola",
+       x = "Tipo de Escola",
+       y = "Frequência (Nº de Alunos)") +
+  theme_minimal()
+
+# Acesso à Internet
+ggplot(dados_limpos, aes(x = acesso_internet, fill = acesso_internet)) +
+  geom_bar() +
+  labs(title = "Distribuição por Acesso à Internet",
+       x = "Acesso à Internet",
+       y = "Frequência (Nº de Alunos)") +
+  theme_minimal()
+
+# Participação em Reforço
+ggplot(dados_limpos, aes(x = participa_reforco, fill = participa_reforco)) +
+  geom_bar() +
+  labs(title = "Distribuição por Participação em Reforço",
+       x = "Participa de Reforço",
+       y = "Frequência (Nº de Alunos)") +
+  theme_minimal()
+```
+
+
+A partir da visualização da distribuição de alunos nas categorias, é possível extrair algumas conclusões:
+
+-   **Distribuição por Tipo de Escola**: Há uma predominância de alunos de escolas públicas em relação às privadas.
+-   **Distribuição por Acesso à Internet**: A maior parte dos alunos da amostra possui acesso à internet em casa, indicando que esse recurso está presente na maioria dos casos analisados.
+-   **Distribuição por Participação em Reforço**: Esta é a variável com distribuição mais desigual das três. A maioria dos alunos não frequenta aulas de reforço escolar, sugerindo que essa prática ainda é pouco utilizada entre os estudantes da amostra.
+
+Essa distribuição desigual é um ponto de atenção para a etapa de modelagem, pois o modelo terá uma base de dados mais robusta para as tecnologias predominantes.
+
+De forma geral, o perfil predominante da amostra é de alunos de escola pública, com acesso à internet e sem participação em reforço. Essa distribuição desigual é um ponto de atenção para a regressão: categorias menos representadas tendem a gerar estimativas com maior incerteza.

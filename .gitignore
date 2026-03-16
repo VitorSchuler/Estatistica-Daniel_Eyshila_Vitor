@@ -3,7 +3,6 @@
 .Rhistory
 .RData
 .Ruserdata
-*.Rproj
 
 # Arquivos e diretórios temporários do Quarto
 /.quarto/
@@ -23,3 +22,6 @@
 # Arquivos de sistema (Windows/Mac)
 .DS_Store
 Thumbs.db
+
+# Outros
+*.pdf
