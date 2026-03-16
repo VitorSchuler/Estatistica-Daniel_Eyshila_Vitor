@@ -51,8 +51,8 @@ library(skimr)
 
 ```{r carga-dados, message=FALSE}
 
-dados <- read_csv2("dados/dados_brutos.csv")
-dicionario <- read_csv2("dados/dicionario.csv")
+dados <- read_csv2("../dados/dados_brutos.csv")
+dicionario <- read_csv2("../dados/dicionario.csv")
 ```
 # 3. Análise Exploratória de Dados (EDA)
 
